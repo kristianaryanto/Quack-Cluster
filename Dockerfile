@@ -7,9 +7,9 @@ WORKDIR /app
 # Salin file dependensi terlebih dahulu untuk caching
 COPY pyproject.toml ./
 
-# Install semua dependensi dari pyproject.toml
-# Opsi -e (editable) penting agar hot-reloading tetap berfungsi
-RUN pip install -e .
+# SOLUSI: Tambahkan "[dev]" untuk menginstal dependensi pengembangan
+# Tanda kutip penting untuk shell
+RUN pip install -e ".[dev]"
 
 # Salin sisa kode proyek
 COPY . .

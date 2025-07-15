@@ -24,3 +24,7 @@ clean:
 
 logs:
 	docker compose logs -f
+
+
+test:
+	docker compose exec ray-head pytest

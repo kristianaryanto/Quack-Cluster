@@ -1,5 +1,3 @@
-# quack_cluster/coordinator.py
-
 import os
 import glob
 import ray
@@ -11,8 +9,9 @@ import duckdb
 import pyarrow as pa
 from sqlglot.errors import ParseError
 from contextlib import asynccontextmanager
-from .settings import settings # <-- SOLUSI: Tambahkan baris ini
+
 from .worker import DuckDBWorker
+from .settings import settings # <-- SOLUSI: Tambahkan baris ini
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -51,14 +50,9 @@ async def execute_query(request: QueryRequest):
         
         worker_query = parsed_query.copy()
         
-        # FIX Kegagalan 1: Logika penggantian COUNT(*) yang lebih cerdas
         for count_expr in worker_query.find_all(sqlglot.exp.Count):
             if isinstance(count_expr.this, sqlglot.exp.Star):
-                # Jika sudah ada alias (e.g., "COUNT(*) AS count"), ganti seluruhnya
-                if isinstance(count_expr.parent, sqlglot.exp.Alias):
-                    count_expr.parent.replace(sqlglot.parse_one("COUNT(*) AS partial_count"))
-                else: # Jika tidak ada alias, ganti fungsinya saja
-                    count_expr.replace(sqlglot.parse_one("COUNT(*) AS partial_count"))
+                count_expr.replace(sqlglot.parse_one("COUNT(*) AS partial_count"))
 
         worker_query.find(sqlglot.exp.Table).replace(sqlglot.parse_one("__TABLE_PLACEHOLDER__"))
         sql_with_placeholder = worker_query.sql(dialect="duckdb")
