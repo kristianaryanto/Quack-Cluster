@@ -1,0 +1,33 @@
+[project]
+name = "quack-cluster"
+version = "0.1.0"
+description = "Serverless, distributed query system with Ray and DuckDB."
+authors = [{ name = "Your Name", email = "your@email.com" }]
+requires-python = ">=3.9"
+dependencies = [
+    "ray[serve,default]>=2.9.0",
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "duckdb>=0.10.0",
+    "sqlglot>=20.8.0",
+    "pyarrow>=15.0.0",
+    "pydantic-settings>=2.2.0",
+    "pandas>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.27.0",
+    "ruff>=0.3.0",
+]
+
+[tool.pdm.scripts]
+lint = "ruff check . && ruff format ."
+test = "pytest"
+generate-data = "python -c 'from quack_cluster.settings import generate_sample_data; generate_sample_data()'"
+start = "uvicorn quack_cluster.coordinator:app --host 0.0.0.0 --port 8000 --reload"
+
+# Bagian ini PENTING untuk memperbaiki BuildError
+[tool.setuptools.packages.find]
+include = ["quack_cluster"]

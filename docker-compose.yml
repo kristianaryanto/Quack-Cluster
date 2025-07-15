@@ -1,0 +1,28 @@
+services:
+  ray-head:
+    build: .
+    shm_size: '2.5gb'
+    ports:
+      - "8265:8265"
+      - "8000:8000"
+    volumes:
+      # Kita tetap mount kode agar hot-reloading berfungsi
+      - ./quack_cluster:/app/quack_cluster
+      - ./sample_data:/app/sample_data
+    environment:
+      - RAY_DASHBOARD_HOST=0.0.0.0
+    command: >
+      bash -c "ray start --head --port=6379 --dashboard-host=0.0.0.0 --num-cpus=1 &&
+               uvicorn quack_cluster.coordinator:app --host 0.0.0.0 --port 8000 --reload"
+
+  ray-worker:
+    build: .
+    shm_size: '2.5gb'
+    depends_on:
+      - ray-head
+    volumes:
+      - ./quack_cluster:/app/quack_cluster
+      - ./sample_data:/app/sample_data
+
+    command: >
+      ray start --address=ray-head:6379 --num-cpus=1 --block
