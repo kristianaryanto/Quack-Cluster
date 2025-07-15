@@ -35,6 +35,34 @@ def test_where_clause(api_client):
     for row in data:
         assert row["sales"] > 200
 
+def test_sum_aggregate(api_client):
+    """Tes: Agregasi dengan GROUP BY dan SUM."""
+    response = api_client.post("/query", json={"sql": "SELECT product, SUM(sales) as total_sales FROM \"data_part_*\" GROUP BY product ORDER BY product"})
+    assert response.status_code == 200
+    data = response.json()["result"]
+        
+    assert {"product": "A", "total_sales": 420} in data
+    assert {"product": "B", "total_sales": 400} in data
+    assert {"product": "C", "total_sales": 300} in data
+
+
+def test_avg_aggregate(api_client):
+    """Tes: Agregasi dengan GROUP BY dan AVG."""
+    response = api_client.post("/query", json={"sql": "SELECT product, AVG(sales) as avg_sales FROM \"data_part_*\" GROUP BY product ORDER BY product"})
+    assert response.status_code == 200
+    data = response.json()["result"]
+    
+    # A: 420 / 3 = 140
+    # B: 400 / 2 = 200
+    # C: 300 / 1 = 300
+    
+    result_map = {item['product']: item['avg_sales'] for item in data}
+
+    assert result_map["A"] == pytest.approx(140.0)
+    assert result_map["B"] == pytest.approx(200.0)
+    assert result_map["C"] == pytest.approx(300.0)
+
+
 # Skenario Tes Kegagalan (Error Handling)
 # ======================================
 
