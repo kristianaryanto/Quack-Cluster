@@ -16,6 +16,21 @@ def test_select_all(api_client):
     assert data[0]["id"] == 1
     assert data[5]["id"] == 6
 
+def test_select_all_csv(api_client):
+    """Tes: Mengambil semua data dari beberapa file."""
+    response = api_client.post("/query", json={"sql": "SELECT * FROM \"userscs\" ORDER BY user_id"})
+    assert response.status_code == 200
+    data = response.json()["result"]
+    assert data[0]["user_id"] == 101
+
+def test_select_all_json(api_client):
+    """Tes: Mengambil semua data dari beberapa file."""
+    response = api_client.post("/query", json={"sql": "SELECT * FROM \"ordersjs\" ORDER BY user_id"})
+    assert response.status_code == 200
+    data = response.json()["result"]
+    assert data[0]["user_id"] == 101
+
+
 def test_cte_with_join_and_limit(api_client):
     """Tes: Logika JOIN yang sama menggunakan CTE."""
     sql = """
@@ -214,6 +229,7 @@ def test_left_join(api_client):
 
 
 
+
 def test_join_query(api_client):
     """Tes: JOIN sederhana antara tabel orders dan users."""
     sql = """
@@ -271,7 +287,12 @@ def test_table_not_found(api_client):
     """Tes: Memastikan error 404 jika tabel tidak ada."""
     response = api_client.post("/query", json={"sql": "SELECT * FROM \"non_existent_table\""})
     assert response.status_code == 404
-    assert "Table 'non_existent_table' not found" in response.json()["detail"]
+    
+    # --- BARIS YANG DIPERBAIKI ---
+    # Memeriksa pesan error baru yang lebih deskriptif
+    expected_substring = "No data files found for table 'non_existent_table'"
+    assert expected_substring in response.json()["detail"]
+
 
 def test_invalid_sql_syntax(api_client):
     """Tes: Memastikan error 400 jika sintaks SQL salah."""

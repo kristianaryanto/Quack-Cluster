@@ -330,3 +330,15 @@ def test_complex_analytical_query_with_ctes_and_subqueries(api_client):
     assert result['city'] == 'New York'
     assert result['num_customers'] == 2
     assert result['avg_spend_in_city'] == pytest.approx(1650.00)
+
+def test_complex_join_parquet_csv_json(api_client):
+    """Tes:  JOIN untuk menyertakan semua pengguna, bahkan yang tanpa pesanan."""
+    # David (user 104) tidak memiliki pesanan, harus muncul dengan NULL
+    sql = "WITH UserOrderSummary AS ( SELECT u.user_id, u.name, u.city, oj.order_id, oj.quantity, oj.order_date FROM userscs u JOIN ordersjs oj ON u.user_id = oj.user_id ), UserActivitySummary AS ( SELECT name, city, COUNT(order_id) AS number_of_orders, SUM(quantity) AS total_quantity, MIN(order_date) AS first_order_date FROM UserOrderSummary GROUP BY name, city ) SELECT name, city, number_of_orders, total_quantity, first_order_date, RANK() OVER (PARTITION BY city ORDER BY total_quantity DESC) AS quantity_rank_in_city FROM UserActivitySummary ORDER BY city, quantity_rank_in_city;"
+    response = api_client.post("/query", json={"sql": sql})
+    assert response.status_code == 200
+    data = response.json()["result"]
+    david_record = next((item for item in data if item["name"] == "Bob"), None)
+    assert david_record is not None
+    assert david_record["total_quantity"] is 6
+

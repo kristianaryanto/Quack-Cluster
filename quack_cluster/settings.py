@@ -6,21 +6,27 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from datetime import datetime, timedelta
 
 
-
 class Settings(BaseSettings):
+    """
+    Konfigurasi untuk Quack-Cluster.
+    """
+    DATA_DIR: str = "sample_data"
+    
+    # --- PENGATURAN BARU UNTUK EKSEKUSI ---
+    # Jumlah partisi untuk shuffle join
+    NUM_SHUFFLE_PARTITIONS: int = 4
+    
+    # Ambang batas (dalam MB) untuk memutuskan broadcast join (belum diimplementasikan)
+    BROADCAST_THRESHOLD_MB: int = 10 
+    MAX_RETRIES: int = 3 # Jumlah percobaan ulang maksimum untuk task yang gagal
+
+    CACHE_TTL_SECONDS: int = 300 # Durasi cache dalam detik (default: 5 menit)
+
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra='ignore')
     DATA_DIR: str = "/app/sample_data"
 
 settings = Settings()
 
-# def generate_sample_data():
-#     print(f"Generating sample data in '{settings.DATA_DIR}'...")
-#     os.makedirs(settings.DATA_DIR, exist_ok=True)
-#     df1 = pd.DataFrame({'id': [1, 2, 3], 'product': ['A', 'B', 'A'], 'sales': [100, 150, 200]})
-#     df2 = pd.DataFrame({'id': [4, 5, 6], 'product': ['B', 'C', 'A'], 'sales': [250, 300, 120]})
-#     pq.write_table(pa.Table.from_pandas(df1), os.path.join(settings.DATA_DIR, 'data_part_1.parquet'))
-#     pq.write_table(pa.Table.from_pandas(df2), os.path.join(settings.DATA_DIR, 'data_part_2.parquet'))
-#     print("Sample data generated.")
 
 
 def generate_sample_data():
@@ -95,5 +101,40 @@ def generate_sample_data():
 
     pq.write_table(pa.Table.from_pandas(orders_df), os.path.join(settings.DATA_DIR, 'orders_nw.parquet'))
 
+
+
+    # 2. Tabel Users (Format CSV)
+    users_df = pd.DataFrame({
+        'user_id': [101, 102, 103, 104, 105, 106],
+        'name': ['Alice', 'Bob', 'Charlie', 'David', 'Eve', 'Frank'],
+        'city': ['New York', 'Los Angeles', 'New York', 'Chicago', 'Los Angeles', 'Chicago']
+    })
+    users_df.to_csv(os.path.join(settings.DATA_DIR, 'userscs.csv'), index=False)
+    print("✅ Generated 'users.csv'")
+
+    # 3. Tabel Orders (Format JSON Lines)
+    order_data = {
+        'order_id': range(1, 16),
+        'user_id': [101, 102, 101, 103, 104, 102, 105, 101, 103, 106, 102, 104, 105, 103, 101],
+        'product_id': [1, 3, 2, 4, 1, 5, 2, 4, 3, 1, 2, 2, 5, 1, 5],
+        'quantity': [1, 2, 1, 1, 1, 3, 2, 1, 1, 1, 1, 1, 2, 1, 4],
+        'order_date': [
+            datetime(2025, 1, 20), datetime(2025, 1, 22), datetime(2025, 2, 5),
+            datetime(2025, 2, 10), datetime(2025, 3, 1), datetime(2025, 3, 12),
+            datetime(2025, 3, 15), datetime(2025, 4, 2), datetime(2025, 4, 8),
+            datetime(2025, 4, 20), datetime(2025, 5, 5), datetime(2025, 5, 15),
+            datetime(2025, 6, 1), datetime(2025, 6, 10), datetime(2025, 6, 25)
+        ]
+    }
+    orders_df = pd.DataFrame(order_data)
+    # DuckDB's read_json_auto works best with newline-delimited JSON
+    orders_df.to_json(
+        os.path.join(settings.DATA_DIR, 'ordersjs.json'),
+        orient='records',
+        lines=True,
+        date_format='iso'
+    )
+    print("✅ Generated 'orders.json'")
+    print("\nSample data generation complete.")
 
     print("Sample data for users and orders generated.")

@@ -2,6 +2,9 @@
 # Jangan pernah commit file .env karena berisi variabel sensitif.
 .env
 
+quack_cluster/merge.py
+quack_cluster/quack_core.txt
+
 # Direktori Cache & Bytecode Python
 __pycache__/
 *.py[cod]

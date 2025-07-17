@@ -301,6 +301,21 @@ Contributions are welcome\! Please feel free to open an issue to discuss a new f
 
 -----
 
+Of course. Here is the revised section, which specifies that AI was used for development and documentation, while architecture and debugging were human-powered.
+
+---
+
+## 🤖 AI-Powered Development
+
+This project leverages AI tools to accelerate development and improve documentation.
+
+* **Development**: **GEMINI** was used for real-time code completion and generating routine code snippets.
+* **Documentation**: **QWEN** assisted in drafting and refining parts of this README.
+
+All core architectural decisions, debugging, and final testing are **human-powered** to ensure quality and correctness.
+
+---
+
 ## 📄 License
 
 This project is licensed under the [MIT License](https://www.google.com/search?q=LICENSE).
