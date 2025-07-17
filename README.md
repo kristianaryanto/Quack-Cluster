@@ -87,6 +87,23 @@ Once running, you can monitor the cluster status via the **Ray Dashboard** at `h
 
 -----
 
+## 🚀 Testing with Postman
+
+You can easily test all API features using the provided Postman collection.
+
+1.  **Import the Collection and Environment**:
+    * In Postman, click **Import** and select the following files:
+    * **Collection**: `documentation/postman_collection/QuackCluster_API_Tests.json`
+    * **Environment**: `documentation/postman_collection/QuackCluster_postman_environment.json`
+
+2.  **Activate the Environment**:
+    * In the top-right corner of Postman, select **"Quack Cluster Environment"** from the environment dropdown list.
+
+3.  **Send a Request**:
+    * The environment pre-configures the `baseUrl` variable to `http://127.0.0.1:8000`. You can now run any of the pre-built requests in the collection.
+
+---
+
 ## 👨‍🏫 Tutorial: How to Use It
 
 Use `curl` to send SQL queries to the API endpoint. The engine can automatically query across multiple files using wildcards in the `FROM` clause.
@@ -212,7 +229,47 @@ curl -X 'POST' \
 }
 ```
 
------
+## 💡 Query Scope & SQL Capabilities
+
+The API leverages the **DuckDB SQL dialect**. You can query collections of data files (like Parquet or CSV) by referring to them as tables. The system supports glob patterns to query multiple files at once (e.g., `"data_part_*.parquet"`).
+
+Below is a summary of supported SQL features.
+
+### ✅ Basic Operations
+
+  * **`SELECT`**: Select all (`*`) or specific columns.
+  * **`FROM`**: Specify tables, including file glob patterns (e.g., `"data_part_*"`).
+  * **`WHERE`**: Filter rows based on conditions.
+  * **`GROUP BY`**: Group rows for aggregate functions.
+  * **`ORDER BY`**: Sort the result set.
+  * **`LIMIT` / `OFFSET`**: Paginate results.
+
+### ✅ Aggregations & Grouping
+
+  * **Aggregate Functions**: `COUNT()`, `SUM()`, `AVG()`, `MIN()`, `MAX()`.
+  * **`HAVING`**: Filter groups after aggregation.
+
+### ✅ Joins & Set Operations
+
+  * **`INNER JOIN`**: Select matching records from two tables.
+  * **`LEFT JOIN`**: Select all records from the left table and matched records from the right.
+  * **`FULL OUTER JOIN`**: Select all records when there is a match in either the left or right table.
+  * **`UNION ALL`**: Combine the result sets of two or more `SELECT` statements (including duplicates).
+
+### ✅ Advanced SQL Features
+
+  * **Subqueries**: Nest a `SELECT` statement inside another statement (e.g., in `FROM` or `WHERE IN (...)`).
+  * **Common Table Expressions (CTEs)**: Use the `WITH` clause to define temporary, named result sets.
+  * **Window Functions**: Perform calculations across a set of table rows (e.g., `SUM(...) OVER (PARTITION BY ...)`).
+  * **Conditional Logic**: Use `CASE...WHEN...THEN...ELSE...END` statements.
+  * **Advanced `SELECT` Syntax**:
+      * `SELECT DISTINCT`: Return only unique values.
+      * `SELECT DISTINCT ON (...)`: Return the first row for each unique group.
+      * `SELECT * EXCLUDE (...)`: Select all columns except specified ones.
+      * `SELECT * REPLACE (...)`: Replace a column's value with a new expression.
+      * `SELECT COLUMNS('<regex>')`: Select columns that match a regular expression.
+  * **Date/Time Functions**: Functions like `DATE_TRUNC` to manipulate date/time values.
+
 
 ## 🛠️ Development & Management
 
