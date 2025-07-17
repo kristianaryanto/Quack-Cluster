@@ -288,8 +288,8 @@ Use the following `make` commands to manage your development environment.
 
 ## 🗺️ Roadmap
 
-  * [ ] Support for `JOIN` operations across data sources.
-  * [ ] Support for Window Functions (`OVER`, `PARTITION BY`).
+  * [V] Support for `JOIN` operations across data sources.
+  * [V] Support for Window Functions (`OVER`, `PARTITION BY`).
   * [ ] Integration with a metadata catalog like Apache Iceberg.
   * [ ] A dedicated Python client (SDK) for a more user-friendly experience.
 
