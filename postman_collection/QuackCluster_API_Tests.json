@@ -1,0 +1,842 @@
+{
+	"info": {
+		"_postman_id": "c1f7b8e4-7d9a-4e2b-8a5e-f5e2a3f9d1c9",
+		"name": "Quack Cluster API Tests",
+		"description": "A collection of API requests generated from Pytest tests for the Quack Cluster Coordinator.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Basic Queries",
+			"item": [
+				{
+					"name": "Select All",
+					"description": "Tes: Mengambil semua data dari beberapa file.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT * FROM \\\"data_part_*\\\" ORDER BY id\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Group By and Aggregate (COUNT)",
+					"description": "Tes: Agregasi dengan GROUP BY dan COUNT.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT product, COUNT(*) as count FROM \\\"data_part_*\\\" GROUP BY product ORDER BY product\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Where Clause",
+					"description": "Tes: Filter data menggunakan klausa WHERE.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT * FROM \\\"data_part_*\\\" WHERE sales > 200\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Group By and Aggregate (SUM)",
+					"description": "Tes: Agregasi dengan GROUP BY dan SUM.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT product, SUM(sales) as total_sales FROM \\\"data_part_*\\\" GROUP BY product ORDER BY product\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Group By and Aggregate (AVG)",
+					"description": "Tes: Agregasi dengan GROUP BY dan AVG.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT product, AVG(sales) as avg_sales FROM \\\"data_part_*\\\" GROUP BY product ORDER BY product\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "MIN and MAX Aggregates",
+					"description": "Tes: MIN() and MAX() aggregate functions.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT\\n    product,\\n    MIN(sales) as min_sales,\\n    MAX(sales) as max_sales\\nFROM \\\"data_part_*\\\"\\nGROUP BY product\\nORDER BY product\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Advanced SELECT Features",
+			"item": [
+				{
+					"name": "Select Distinct",
+					"description": "Tes: SELECT DISTINCT - Mengambil nilai unik dari kolom 'product'.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT DISTINCT product FROM \\\"data_part_*\\\"\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Select Distinct On",
+					"description": "Tes: SELECT DISTINCT ON - Mengambil satu baris unik untuk setiap 'product'.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT DISTINCT ON (product) * FROM \\\"data_part_*\\\" ORDER BY product, id\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Select Exclude",
+					"description": "Tes: SELECT * EXCLUDE - Memilih semua kolom kecuali 'sales'.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT * EXCLUDE (sales) FROM \\\"data_part_*\\\" WHERE id = 1\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Select Replace",
+					"description": "Tes: SELECT * REPLACE - Mengganti nilai kolom dengan ekspresi.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT * REPLACE (sales * 2 AS sales) FROM \\\"data_part_*\\\" WHERE id = 1\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Select Columns with Regex",
+					"description": "Tes: SELECT COLUMNS - Memilih kolom yang cocok dengan regex.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT COLUMNS('pro.*') FROM \\\"data_part_*\\\" WHERE id = 1\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Joins, CTEs & Subqueries",
+			"item": [
+				{
+					"name": "Simple JOIN with Aggregation",
+					"description": "Tes: JOIN sederhana antara tabel orders dan users.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT u.name, COUNT(o.order_id) as order_count, SUM(o.amount) as total_spent FROM \\\"orders\\\" o JOIN \\\"users\\\" u ON o.user_id = u.user_id GROUP BY u.name ORDER BY u.name\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "LEFT JOIN",
+					"description": "Tes: LEFT JOIN untuk menyertakan semua pengguna, bahkan yang tanpa pesanan.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT u.name, o.order_id FROM \\\"users\\\" u LEFT JOIN \\\"orders\\\" o ON u.user_id = o.user_id ORDER BY u.name\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "FULL OUTER JOIN",
+					"description": "Tes: FULL OUTER JOIN to include all records from both tables.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT u.name, o.order_id\\nFROM \\\"users\\\" u FULL OUTER JOIN \\\"orders\\\" o ON u.user_id = o.user_id\\nORDER BY u.name, o.order_id\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "FROM Clause with Subquery",
+					"description": "Tes: FROM clause dengan subquery.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT COUNT(*) as count FROM (SELECT * FROM \\\"data_part_*\\\" WHERE product = 'A')\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "WHERE Clause with Subquery (IN)",
+					"description": "Tes: WHERE clause dengan subquery (IN).",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT order_id FROM \\\"orders\\\" WHERE user_id IN (SELECT user_id FROM \\\"users\\\" WHERE city = 'New York') ORDER BY order_id\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CTE with JOIN and LIMIT",
+					"description": "Tes: Logika JOIN yang sama menggunakan CTE.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"WITH user_aggregates AS (\\n    SELECT\\n        u.name,\\n        COUNT(o.order_id) as order_count,\\n        SUM(o.amount) as total_spent\\n    FROM \\\"orders\\\" o JOIN \\\"users\\\" u ON o.user_id = u.user_id\\n    GROUP BY u.name\\n)\\nSELECT name, order_count, total_spent\\nFROM user_aggregates\\nORDER BY name\\nLIMIT 2\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Analytical & Advanced SQL",
+			"item": [
+				{
+					"name": "Window Function (Running Total)",
+					"description": "Tes: Window function (SUM OVER) to calculate a running total.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT\\n    product,\\n    id,\\n    SUM(sales) OVER (PARTITION BY product ORDER BY id) as running_total\\nFROM \\\"data_part_*\\\"\\nORDER BY product, id\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "HAVING Clause",
+					"description": "Tes: HAVING clause to filter groups after aggregation.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT\\n    product,\\n    COUNT(*) as count\\nFROM \\\"data_part_*\\\"\\nGROUP BY product\\nHAVING COUNT(*) > 1\\nORDER BY product\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CASE Statement",
+					"description": "Tes: CASE statement for conditional logic within a query.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT\\n    id,\\n    sales,\\n    CASE\\n        WHEN sales >= 250 THEN 'High'\\n        WHEN sales >= 150 THEN 'Medium'\\n        ELSE 'Low'\\n    END as sales_category\\nFROM \\\"data_part_*\\\"\\nORDER BY id\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UNION ALL",
+					"description": "Tes: UNION ALL to combine results from two queries.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT product FROM \\\"data_part_*\\\" WHERE sales > 250\\nUNION ALL\\nSELECT product FROM \\\"data_part_*\\\" WHERE product = 'C'\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "LIMIT with OFFSET",
+					"description": "Tes: LIMIT clause with an OFFSET for pagination.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT id FROM \\\"data_part_*\\\" ORDER BY id LIMIT 2 OFFSET 2\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Datetime Function (DATE_TRUNC)",
+					"description": "Tes: Date/Time function DATE_TRUNC.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT\\n    DATE_TRUNC('month', order_date) as month,\\n    COUNT(order_id) as event_count\\nFROM \\\"orders_nw\\\"\\nGROUP BY month\\nORDER BY month\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Complex Analytical Query",
+					"description": "A complex analytical query involving CTEs, subqueries, unions, and aggregations.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"WITH user_sales AS (\\n    SELECT\\n        u.name,\\n        u.city,\\n        SUM(o.amount) as total_spent\\n    FROM \\\"users_nw\\\" u\\n    JOIN \\\"orders_nw\\\" o ON u.user_id = o.user_id\\n    GROUP BY u.name, u.city\\n),\\nhigh_value_users AS (\\n    SELECT\\n        name,\\n        city,\\n        total_spent,\\n        'Premium' as category\\n    FROM (\\n        SELECT * FROM user_sales\\n    )\\n    WHERE total_spent > 450\\n)\\nSELECT\\n    city,\\n    COUNT(*) as num_customers,\\n    AVG(total_spent) as avg_spend_in_city\\nFROM (\\n    SELECT\\n        name,\\n        city,\\n        total_spent,\\n        'Standard' as category\\n    FROM user_sales\\n    WHERE total_spent <= 450\\n\\n    UNION ALL\\n\\n    SELECT\\n        name,\\n        city,\\n        total_spent,\\n        category\\n    FROM high_value_users\\n) AS combined_users\\nWHERE\\n    city = 'New York'\\nGROUP BY\\n    city\\nORDER BY\\n    avg_spend_in_city DESC\\nLIMIT 1;\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Response Format Tests",
+			"item": [
+				{
+					"name": "JSON Format",
+					"description": "Tests the endpoint to ensure it returns a valid JSON response.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT 1 as id, 'test_product' as product, 100.0 as sales;\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query?format=json",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							],
+							"query": [
+								{
+									"key": "format",
+									"value": "json"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Apache Arrow Format",
+					"description": "Tests the endpoint to ensure it returns a valid Apache Arrow stream.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT 1 as id, 'test_product' as product, 100.0 as sales;\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query?format=arrow",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							],
+							"query": [
+								{
+									"key": "format",
+									"value": "arrow"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Error Handling",
+			"item": [
+				{
+					"name": "Table Not Found",
+					"description": "Tes: Memastikan error 404 jika tabel tidak ada.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT * FROM \\\"non_existent_table\\\"\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid SQL Syntax",
+					"description": "Tes: Memastikan error 400 jika sintaks SQL salah.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELEC * FROM \\\"data_part_*\\\"\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Empty Result",
+					"description": "Tes: Memastikan hasil kosong jika filter tidak menemukan apa pun.",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sql\": \"SELECT * FROM \\\"data_part_*\\\" WHERE sales > 9999\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"query"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://127.0.0.1:8000",
+			"type": "string"
+		}
+	]
+}

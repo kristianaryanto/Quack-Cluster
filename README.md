@@ -1,9 +1,3 @@
-Of course\! Here is a revised and improved version of your `README.md`.
-
-This version has been translated into English for a broader audience, reorganized for clarity, and enriched with a detailed tutorial section based on your test file. The installation and workflow instructions have also been updated to directly reflect the commands available in your `Makefile`.
-
------
-
 # 🦆 Quack-Cluster
 
 [](https://www.google.com/search?q=https://github.com/your-username/quack-cluster)
