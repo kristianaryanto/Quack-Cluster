@@ -2,7 +2,7 @@
 name = "quack-cluster"
 version = "0.1.0"
 description = "Serverless, distributed query system with Ray and DuckDB."
-authors = [{ name = "Your Name", email = "your@email.com" }]
+authors = [{ name = "Kristian Aryanto Wibowo", email = "a.wkristian2@gmail.com" }]
 requires-python = ">=3.9"
 dependencies = [
     "ray[serve,default]>=2.9.0",
@@ -13,6 +13,7 @@ dependencies = [
     "pyarrow>=15.0.0",
     "pydantic-settings>=2.2.0",
     "pandas>=2.0.0",
+    "graphviz",
 ]
 
 [project.optional-dependencies]

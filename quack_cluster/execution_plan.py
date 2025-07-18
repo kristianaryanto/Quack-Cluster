@@ -1,9 +1,10 @@
 # quack_cluster/execution_plan.py
 from pydantic import BaseModel
-from typing import List, Tuple, Any, Literal
+from typing import List, Tuple, Any, Literal,Optional
 # from sqlglot import exp
 from sqlglot import exp, parse_one
 from sqlglot.errors import ParseError
+
 class BasePlan(BaseModel):
     """Kelas dasar untuk semua rencana eksekusi."""
     plan_type: str
@@ -22,6 +23,7 @@ class DistributedScanPlan(BasePlan):
     table_name: str
     worker_query_template: str
 
+
 class DistributedShuffleJoinPlan(BasePlan):
     """Rencana untuk shuffle join terdistribusi."""
     plan_type: Literal["join"] = "join"
@@ -34,10 +36,14 @@ class DistributedShuffleJoinPlan(BasePlan):
     right_join_key: str
     worker_join_sql: str
     
-    # --- TAMBAHAN BARU ---
-    # Fungsi DuckDB yang akan digunakan worker untuk membaca file
     left_reader_function: str
     right_reader_function: str
+
+
+    left_where_sql: str
+    right_where_sql: str
+
+    final_select_sql: Optional[str] = None
 
 class DistributedBroadcastJoinPlan(BasePlan):
     """Rencana untuk broadcast join terdistribusi."""

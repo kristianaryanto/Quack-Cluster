@@ -4,7 +4,7 @@
 
 quack_cluster/merge.py
 quack_cluster/quack_core.txt
-
+minikube
 # Direktori Cache & Bytecode Python
 __pycache__/
 *.py[cod]

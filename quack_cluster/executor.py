@@ -140,15 +140,19 @@ class Executor:
         if not left_files or not right_files:
             raise FileNotFoundError(f"Data for join tables missing.")
 
-        # Definisikan fungsi untuk membuat task partisi
+        # Definisikan fungsi untuk membuat task partisi        
+        
         def create_partition_task(file_info: tuple):
-            file_path, join_key, reader_func = file_info
+            file_path, join_key, reader_func, where_sql = file_info
             actor = DuckDBWorker.remote()
-            return actor.partition_by_key.remote(file_path, join_key, settings.NUM_SHUFFLE_PARTITIONS, reader_func)
+            return actor.partition_by_key.remote(file_path, join_key, settings.NUM_SHUFFLE_PARTITIONS, reader_func, where_sql)
 
-        # Siapkan input untuk helper
-        left_inputs = [(f, plan.left_join_key, plan.left_reader_function) for f in left_files]
-        right_inputs = [(f, plan.right_join_key, plan.right_reader_function) for f in right_files]
+        # Siapkan input untuk helper dengan menyertakan klausa WHERE
+        left_inputs = [(f, plan.left_join_key, plan.left_reader_function, plan.left_where_sql) for f in left_files]
+        right_inputs = [(f, plan.right_join_key, plan.right_reader_function, plan.right_where_sql) for f in right_files]
+        
+        if plan.left_where_sql: logger.info(f"Pushing down filter to left side: {plan.left_where_sql}")
+        if plan.right_where_sql: logger.info(f"Pushing down filter to right side: {plan.right_where_sql}")
         
         # Jalankan task partisi untuk sisi kiri dan kanan secara paralel
         left_partitions_list, right_partitions_list = await asyncio.gather(
@@ -184,30 +188,67 @@ class Executor:
         partial_results_table = pa.concat_tables(valid_partials)
         final_con.register("partial_results", partial_results_table)
 
+        # --- TAHAP 3: AGREGASI FINAL (YANG DIPERBAIKI) ---
         final_agg_query = "SELECT * FROM partial_results"
         parsed_query = plan.query_ast
 
         if parsed_query.find(exp.AggFunc):
-            final_selects, final_group_bys = [], []
+            final_selects = []
+            final_group_bys = []
+
             if group_by_node := parsed_query.find(exp.Group):
                 for expr in group_by_node.expressions:
-                    final_group_bys.append(expr.name)
-                    final_selects.append(expr.name)
+                    final_group_bys.append(expr.alias_or_name)
+            
+            window_function_aliases = set()
+            if plan.final_select_sql:
+                final_select_ast = parse_one(plan.final_select_sql, read="duckdb")
+                for expr in final_select_ast.expressions:
+                    if expr.find(exp.Window):
+                        window_function_aliases.add(expr.alias_or_name)
+
+            final_selects.extend(final_group_bys)
             for expr in parsed_query.find(exp.Select).expressions:
-                if expr.name in final_group_bys: continue
-                agg_func = expr.find(exp.AggFunc)
-                if isinstance(agg_func, (exp.Count, exp.Sum)):
-                    final_selects.append(f"SUM({expr.alias_or_name}) AS {expr.alias_or_name}")
+                alias = expr.alias_or_name
+                if alias in final_group_bys or alias in window_function_aliases:
+                    continue
+                if expr.find(exp.AggFunc):
+                     final_selects.append(f"SUM({alias}) AS {alias}")
+
             final_agg_query = f"SELECT {', '.join(final_selects)} FROM partial_results"
-            if final_group_bys: final_agg_query += f" GROUP BY {', '.join(final_group_bys)}"
+            if final_group_bys:
+                final_agg_query += f" GROUP BY {', '.join(final_group_bys)}"
         
+        # KODE YANG SALAH TELAH DIHAPUS DARI SINI
+        # JANGAN TAMBAHKAN ORDER BY ATAU LIMIT DI SINI
+
+        logger.info(f"Coordinator executing final aggregation: {final_agg_query}")
+        aggregated_results_table = final_con.execute(final_agg_query).fetch_arrow_table()
+
+        # --- TAHAP 4: EKSEKUSI FUNGSI WINDOW (YANG DIPERBAIKI) ---
+        final_table = aggregated_results_table
+        if plan.final_select_sql:
+            logger.info(f"Coordinator applying final projection with window functions...")
+            final_con.register("aggregated_results", aggregated_results_table)
+            
+            # CUKUP GUNAKAN SQL YANG SUDAH DIBUAT DENGAN BENAR OLEH PLANNER
+            window_query = plan.final_select_sql
+            
+            logger.info(f"Executing window function query: {window_query}")
+            final_table = final_con.execute(window_query).fetch_arrow_table()
+
+        # --- TAHAP 5: PENGURUTAN DAN PEMBATASAN FINAL (SATU-SATUNYA YANG BENAR) ---
+        final_con.register("final_results_before_sort", final_table)
+        final_ordered_query = "SELECT * FROM final_results_before_sort"
+
         if order_by := parsed_query.find(exp.Order):
             rewritten_order = order_by.copy()
-            for col in rewritten_order.find_all(exp.Column): col.set('table', None)
-            final_agg_query += f" {rewritten_order.sql()}"
+            for col in rewritten_order.find_all(exp.Column):
+                col.set('table', None)
+            final_ordered_query += f" {rewritten_order.sql()}"
         
         if limit := parsed_query.find(exp.Limit):
-            final_agg_query += f" {limit.sql()}"
+            final_ordered_query += f" {limit.sql()}"
 
-        logger.info(f"Coordinator executing final join aggregation: {final_agg_query}")
-        return final_con.execute(final_agg_query).fetch_arrow_table()
+        logger.info(f"Coordinator applying final sort and limit: {final_ordered_query}")
+        return final_con.execute(final_ordered_query).fetch_arrow_table()

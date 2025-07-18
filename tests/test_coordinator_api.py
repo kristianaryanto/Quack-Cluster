@@ -280,6 +280,59 @@ def test_join_query_with_limit_and_where(api_client):
     assert result_map['Alice']['order_count'] == 2
     assert result_map['Alice']['total_spent'] == 200.0
 
+def test_join_with_aggregate_and_window_function(api_client):
+    """
+    Tes: Skenario kompleks yang menggabungkan JOIN, WHERE, GROUP BY, agregasi (SUM),
+    dan fungsi window (RANK) untuk memastikan eksekusi berjalan dengan urutan yang benar.
+    """
+    # Kueri ini menggunakan tabel yang lebih kaya dari data sampel
+    # untuk menguji partisi fungsi window dengan benar.
+    sql = """
+    SELECT
+        u.name,
+        u.city,
+        SUM(o.amount) as total_spent,
+        RANK() OVER (PARTITION BY u.city ORDER BY SUM(o.amount) DESC) as spending_rank_in_city
+    FROM
+        orders_nw o
+    JOIN
+        users_nw u ON o.user_id = u.user_id
+    WHERE
+        u.city IN ('New York', 'Chicago')
+    GROUP BY
+        u.name, u.city
+    ORDER BY
+        u.city, spending_rank_in_city;
+    """
+    response = api_client.post("/query", json={"sql": sql})
+    assert response.status_code == 200
+    data = response.json()["result"]
+
+    # Kita memfilter untuk 2 kota, masing-masing dengan 2 pengguna, jadi total 4 hasil.
+    assert len(data) == 4
+
+    # Buat map untuk memudahkan pemeriksaan hasil
+    result_map = {(item['city'], item['name']): item for item in data}
+
+    # --- Verifikasi Hasil untuk Chicago ---
+    # David seharusnya memiliki peringkat 1 karena pengeluarannya lebih tinggi
+    assert result_map[('Chicago', 'David')]['total_spent'] == 1225.0
+    assert result_map[('Chicago', 'David')]['spending_rank_in_city'] == 1
+
+    # Frank seharusnya memiliki peringkat 2
+    assert result_map[('Chicago', 'Frank')]['total_spent'] == 1200.0
+    assert result_map[('Chicago', 'Frank')]['spending_rank_in_city'] == 2
+
+    # --- Verifikasi Hasil untuk New York ---
+    # Alice seharusnya memiliki peringkat 1
+    assert result_map[('New York', 'Alice')]['total_spent'] == 1725.0
+    assert result_map[('New York', 'Alice')]['spending_rank_in_city'] == 1
+
+    # Charlie seharusnya memiliki peringkat 2
+    assert result_map[('New York', 'Charlie')]['total_spent'] == 1575.0
+    assert result_map[('New York', 'Charlie')]['spending_rank_in_city'] == 2
+
+
 # Skenario Tes Kegagalan (Error Handling)
 # ======================================
 
