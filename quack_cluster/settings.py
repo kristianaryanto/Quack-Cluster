@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     # Jumlah partisi untuk shuffle join
     NUM_SHUFFLE_PARTITIONS: int = 4
     
-    # Ambang batas (dalam MB) untuk memutuskan broadcast join (belum diimplementasikan)
-    BROADCAST_THRESHOLD_MB: int = 10 
+    # Ambang batas (dalam MB) untuk memutuskan broadcast join
+    BROADCAST_THRESHOLD_MB: int = 0 
     MAX_RETRIES: int = 3 # Jumlah percobaan ulang maksimum untuk task yang gagal
 
     CACHE_TTL_SECONDS: int = 300 # Durasi cache dalam detik (default: 5 menit)

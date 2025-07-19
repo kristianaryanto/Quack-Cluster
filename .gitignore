@@ -1,37 +1,31 @@
-# File Lingkungan
-# Jangan pernah commit file .env karena berisi variabel sensitif.
+
 .env
 
 quack_cluster/merge.py
 quack_cluster/quack_core.txt
 minikube
-# Direktori Cache & Bytecode Python
+quack_cluster/coordinator_backup.txt
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Direktori & File Build/Distribusi
-# Dihasilkan saat membuat paket/distribusi.
+
 build/
 dist/
 *.egg-info/
 .pdm-build/
 
-# Lingkungan Virtual
-# Direktori ini dikelola oleh manajer paket/lingkungan Anda.
+
 .venv/
 venv/
 env/
 
 
-# Konfigurasi IDE
 .vscode/
 .idea/
 
-# File Log
 *.log
 
-# Laporan & Cache Pengujian
 .pytest_cache/
 .coverage
 htmlcov/

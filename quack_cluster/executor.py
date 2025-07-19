@@ -8,7 +8,7 @@ import pyarrow as pa
 from sqlglot import exp, parse_one
 # from sqlglot import exp, parse_one
 from sqlglot.errors import ParseError
-from .execution_plan import BasePlan, LocalExecutionPlan, DistributedScanPlan, DistributedShuffleJoinPlan
+from .execution_plan import BasePlan, LocalExecutionPlan, DistributedScanPlan, DistributedShuffleJoinPlan,DistributedBroadcastJoinPlan 
 from .worker import DuckDBWorker
 from .settings import settings
 import logging
@@ -88,6 +88,8 @@ class Executor:
             return await Executor._execute_scan(plan, con)
         elif isinstance(plan, DistributedShuffleJoinPlan):
             return await Executor._execute_join(plan, con)
+        elif isinstance(plan, DistributedBroadcastJoinPlan):
+            return await Executor._execute_broadcast_join(plan, con)
         else:
             raise NotImplementedError(f"Execution for plan type '{plan.plan_type}' is not implemented.")
 
@@ -252,3 +254,88 @@ class Executor:
 
         logger.info(f"Coordinator applying final sort and limit: {final_ordered_query}")
         return final_con.execute(final_ordered_query).fetch_arrow_table()
+
+
+    @staticmethod
+    async def _execute_broadcast_join(plan: DistributedBroadcastJoinPlan, final_con: duckdb.DuckDBPyConnection) -> pa.Table:
+        """
+        Executes a broadcast join.
+        1. Coordinator reads the small table into memory.
+        2. It broadcasts this table to all workers.
+        3. Each worker joins its partition of the large table with the broadcasted table.
+        4. Coordinator gathers and aggregates the results.
+        """
+        logger.info(f"Executing broadcast join: small_table='{plan.small_table_name}', large_table='{plan.large_table_name}'")
+
+        # 1. Coordinator reads the entire small table into a PyArrow Table.
+        small_table_files = glob.glob(os.path.join(settings.DATA_DIR, f"{plan.small_table_name}.*"))
+        if not small_table_files:
+            raise FileNotFoundError(f"Data files for small table '{plan.small_table_name}' not found.")
+
+        # Use a temporary DuckDB connection to read the files
+        temp_con = duckdb.connect(database=':memory:')
+        file_list_sql = ", ".join([f"'{f}'" for f in small_table_files])
+        broadcast_table_arrow = temp_con.execute(
+            f"SELECT * FROM {plan.small_table_reader_func}([{file_list_sql}])"
+        ).fetch_arrow_table()
+        temp_con.close()
+        logger.info(f"✅ Prepared small table '{plan.small_table_name}' for broadcast ({broadcast_table_arrow.num_rows} rows).")
+
+
+        # 2. Find all files for the large table and create worker tasks.
+        large_table_files = glob.glob(os.path.join(settings.DATA_DIR, f"{plan.large_table_name}.*"))
+        if not large_table_files:
+            raise FileNotFoundError(f"Data files for large table '{plan.large_table_name}' not found.")
+
+        # This helper function will be called by the fault-tolerant executor
+        def create_broadcast_task(file_path: str):
+            actor = DuckDBWorker.remote()
+            # Format the worker SQL with the specific file path for the large table partition
+            task_sql = plan.worker_join_sql.format(file_path=file_path)
+            return actor.run_join_task.remote(
+                task_sql,
+                broadcast_table_arrow, # This is the broadcast!
+                plan.small_table_alias
+            )
+
+        # 3. Execute tasks with retries
+        # The _execute_with_retries helper can be used here without modification.
+        partial_results = await Executor._execute_with_retries(large_table_files, create_broadcast_task)
+
+        # 4. Gather results and perform final aggregation on the coordinator
+        valid_results = [r for r in partial_results if r is not None and r.num_rows > 0]
+        if not valid_results:
+            return pa.Table.from_pydict({})
+
+        combined_arrow_table = pa.concat_tables(valid_results)
+        final_con.register("combined_arrow_table", combined_arrow_table)
+
+        # The workers have performed the JOIN and WHERE.
+        # Now, the coordinator runs the original query's logic on the combined data.
+        final_query_ast = plan.query_ast.copy()
+
+        # Remove the JOIN clause, as it's already been executed.
+        if join_node := final_query_ast.find(exp.Join):
+            join_node.pop()
+
+        # Point the FROM clause to the in-memory results table.
+        # This will find the single remaining table expression from the original FROM clause.
+        if from_table := final_query_ast.find(exp.Table):
+             from_table.replace(exp.to_table("combined_arrow_table"))
+        else:
+             raise ValueError("Could not find table to replace in final query AST.")
+
+        # The WHERE clause was also handled by the workers. Remove it for the final aggregation step.
+        if where_node := final_query_ast.find(exp.Where):
+            where_node.pop()
+
+
+        for col in final_query_ast.find_all(exp.Column):
+            col.set('table', None)
+
+        final_query = final_query_ast.sql(dialect="duckdb")
+        # --- FIX ENDS HERE ---
+
+        logger.info(f"Coordinator executing final aggregation/sort: {final_query}")
+
+        return final_con.execute(final_query).fetch_arrow_table()

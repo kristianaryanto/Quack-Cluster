@@ -4,7 +4,7 @@ import glob
 from sqlglot import exp, parse_one
 from sqlglot.errors import ParseError
 from .execution_plan import (
-    BasePlan, LocalExecutionPlan, DistributedScanPlan, DistributedShuffleJoinPlan
+    BasePlan, LocalExecutionPlan, DistributedScanPlan, DistributedShuffleJoinPlan,DistributedBroadcastJoinPlan
 )
 from .settings import settings
 from typing import Tuple, List
@@ -37,7 +37,11 @@ class Planner:
 
         raise FileNotFoundError(f"No data files found for table '{table_name}' with supported extensions (.parquet, .csv, .json)")
 
-
+    @staticmethod
+    def _get_table_size_mb(files: List[str]) -> float:
+        """Calculates the total size of a list of files in megabytes."""
+        total_bytes = sum(os.path.getsize(f) for f in files)
+        return total_bytes / (1024 * 1024)
 
     @staticmethod
     def create_plan(query_ast: exp.Expression, registered_tables: set) -> BasePlan:
@@ -56,16 +60,98 @@ class Planner:
                 raise NotImplementedError("Distributed CROSS JOIN is not yet fully implemented.")
 
             left_table_expr = query_ast.find(exp.Table)
+            right_table_expr = join_expression.this
+
             left_table_name = left_table_expr.this.name
             left_table_alias = left_table_expr.alias_or_name
-            left_reader_func, _ = Planner._discover_table_files_and_reader(left_table_name)
-
-            right_table_expr = join_expression.this
             right_table_name = right_table_expr.this.name
             right_table_alias = right_table_expr.alias_or_name
-            right_reader_func, _ = Planner._discover_table_files_and_reader(right_table_name)
+
+            left_reader_func, left_files = Planner._discover_table_files_and_reader(left_table_name)
+            right_reader_func, right_files = Planner._discover_table_files_and_reader(right_table_name)
 
 
+            left_size_mb = Planner._get_table_size_mb(left_files)
+            right_size_mb = Planner._get_table_size_mb(right_files)
+
+            # --- BROADCAST JOIN DECISION ---
+            small_table_side: Optional[str] = None
+            if right_size_mb <= settings.BROADCAST_THRESHOLD_MB:
+                small_table_side = 'right'
+            elif left_size_mb <= settings.BROADCAST_THRESHOLD_MB:
+                small_table_side = 'left'
+
+            if small_table_side:
+                print(f"✅ Planner chose BROADCAST JOIN. Small table: '{small_table_side}'")
+
+                # Assign large/small tables based on the decision
+                if small_table_side == 'right':
+                    large_name, large_alias, large_reader = left_table_name, left_table_alias, left_reader_func
+                    small_name, small_alias, small_reader = right_table_name, right_table_alias, right_reader_func
+                else: # left is small
+                    large_name, large_alias, large_reader = right_table_name, right_table_alias, right_reader_func
+                    small_name, small_alias, small_reader = left_table_name, left_table_alias, left_reader_func
+
+                # The worker will execute a query joining its partition of the large table
+                # with the broadcasted small table.
+                worker_query_ast = query_ast.copy()
+
+                # --- FIX STARTS HERE ---
+                # The worker's job is to join and filter. The coordinator will do the rest.
+                # We replace the complex SELECT list with '*' to get all joined columns.
+                select_clause = worker_query_ast.find(exp.Select)
+                select_clause.set('expressions', [exp.Star()]) # Set to SELECT *
+
+                # Remove clauses that will be handled by the coordinator in the final step.
+                if worker_query_ast.find(exp.Group): worker_query_ast.find(exp.Group).pop()
+                if worker_query_ast.find(exp.Order): worker_query_ast.find(exp.Order).pop()
+                if worker_query_ast.find(exp.Limit): worker_query_ast.find(exp.Limit).pop()
+                # --- FIX ENDS HERE ---
+
+
+                # --- FIX STARTS HERE ---
+                # Convert JOIN ON to JOIN USING to prevent duplicate key columns in the output.
+                join_node = worker_query_ast.find(exp.Join)
+                on_clause = join_node.args.get('on')
+
+                # Check if it's a simple equality join like ON a.key = b.key
+                if on_clause and isinstance(on_clause.find(exp.EQ), exp.EQ):
+                    # Extract the key name. We assume the keys are named identically.
+                    # e.g., in "ON o.user_id = u.user_id", this extracts "user_id".
+                    join_key_name = on_clause.find(exp.EQ).left.name
+                    
+                    # Remove the old ON clause
+                    join_node.set('on', None) 
+                    
+                    # Set the new USING clause
+                    join_node.set('using', exp.Tuple(expressions=[exp.to_identifier(join_key_name)]))
+                # --- FIX ENDS HERE ---
+
+
+                # Replace table expressions by iterating through them, as 'find' does not support 'whose'.
+                for table_expr in worker_query_ast.find_all(exp.Table):
+                    if table_expr.this.name == large_name:
+                        # Replace the large table with a reader function placeholder for the worker.
+                        table_expr.replace(parse_one(f"{large_reader}('{{file_path}}') AS {large_alias}"))
+                    elif table_expr.this.name == small_name:
+                        # Replace the small table with just its alias, as it will be a registered in-memory table.
+                        table_expr.replace(exp.to_table(small_alias))
+                # --- FIX ENDS HERE ---
+
+
+                return DistributedBroadcastJoinPlan(
+                    query_ast=query_ast,
+                    large_table_name=large_name,
+                    large_table_alias=large_alias,
+                    large_table_reader_func=large_reader,
+                    small_table_name=small_name,
+                    small_table_alias=small_alias,
+                    small_table_reader_func=small_reader,
+                    worker_join_sql=worker_query_ast.sql(dialect="duckdb")
+                )
+
+            # --- SHUFFLE JOIN (FALLBACK) ---
+            print("✅ Planner chose SHUFFLE JOIN.")
             join_on_clause = join_expression.args.get('on')
             join_using_clause = join_expression.args.get('using')
 
